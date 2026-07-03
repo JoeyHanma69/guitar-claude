@@ -207,6 +207,36 @@ button:active {
   gap: 14px;
 }
 
+.library-heading {
+  margin-top: 8px;
+  font-size: 13px;
+  letter-spacing: 0.35em;
+  color: rgba(232, 232, 255, 0.5);
+}
+
+.song-card.imported {
+  position: relative;
+  cursor: pointer;
+}
+
+.song-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1;
+  border-color: rgba(255, 42, 77, 0.5);
+  color: rgba(255, 42, 77, 0.8);
+}
+
+.song-delete:hover {
+  background: rgba(255, 42, 77, 0.15);
+  box-shadow: 0 0 10px rgba(255, 42, 77, 0.5);
+}
+
 /* ---------- overlays / panels ---------- */
 
 .overlay {

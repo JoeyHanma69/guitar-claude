@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { SONGS } from '../engine/NoteGenerator';
 import { analyzeFile } from '../engine/AudioImport';
+import {
+  deleteImportedSong,
+  listImportedSongs,
+  loadImportedSong,
+  saveImportedSong,
+  type ImportedSongMeta,
+} from '../library';
 import { NOTE_SPEEDS, DEFAULT_SETTINGS, keyLabel } from '../constants';
 import { audio } from '../hooks/useAudio';
 
@@ -22,19 +29,54 @@ export default function StartScreen(): JSX.Element {
   const [remapNote, setRemapNote] = useState('');
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState('');
+  const [library, setLibrary] = useState<ImportedSongMeta[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    listImportedSongs()
+      .then(setLibrary)
+      .catch((err) => console.error('failed to load song library', err));
+  }, []);
 
   const handleImport = async (file: File): Promise<void> => {
     setImporting(true);
     setImportError('');
     try {
-      const song = await analyzeFile(file);
+      const { song, bytes } = await analyzeFile(file);
+      try {
+        await saveImportedSong(song, bytes);
+        setLibrary(await listImportedSongs());
+      } catch (err) {
+        // Playable even if saving failed (e.g. storage quota).
+        console.error('failed to save imported song', err);
+      }
       startGame(song);
     } catch (err) {
       setImportError(err instanceof Error ? err.message : 'Import failed.');
     } finally {
       setImporting(false);
       if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const playImported = async (id: string): Promise<void> => {
+    setImporting(true);
+    setImportError('');
+    try {
+      startGame(await loadImportedSong(id));
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Could not load that song.');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const removeImported = async (id: string): Promise<void> => {
+    try {
+      await deleteImportedSong(id);
+      setLibrary(await listImportedSongs());
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Could not delete that song.');
     }
   };
 
@@ -115,6 +157,59 @@ export default function StartScreen(): JSX.Element {
           );
         })}
       </div>
+
+      {library.length > 0 && (
+        <>
+          <h3 className="library-heading">YOUR SONGS</h3>
+          <div className="song-list">
+            {library.map((meta) => {
+              const record = highScores[meta.id];
+              return (
+                <div
+                  key={meta.id}
+                  className={`song-card imported ${DIFFICULTY_CLASS[meta.difficulty]}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    audio.uiClick();
+                    void playImported(meta.id);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void playImported(meta.id);
+                  }}
+                >
+                  <span className="song-diff">
+                    {meta.difficulty.toUpperCase()}
+                    <span className="song-style">Imported</span>
+                  </span>
+                  <span className="song-title">{meta.title}</span>
+                  <span className="song-meta">
+                    {meta.bpm} BPM · {Math.round(meta.duration / 1000)}s · {meta.noteCount} notes
+                  </span>
+                  <span className="song-record">
+                    {record
+                      ? `BEST ${record.score.toLocaleString()} · ${record.accuracy.toFixed(1)}%${
+                          record.fullCombo ? ' · FC' : ''
+                        }`
+                      : 'no record yet'}
+                  </span>
+                  <button
+                    type="button"
+                    className="song-delete"
+                    title="Delete from library"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void removeImported(meta.id);
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       <div className="menu-buttons">
         <button

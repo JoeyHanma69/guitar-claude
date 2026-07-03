@@ -19,6 +19,10 @@ module.exports = {
   rules: {
     'no-console': 'off',
     '@typescript-eslint/no-non-null-assertion': 'off',
+    '@typescript-eslint/no-unused-vars': [
+      'error',
+      { ignoreRestSiblings: true, argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+    ],
   },
   ignorePatterns: ['dist', 'dist-electron', 'release', 'node_modules'],
 };

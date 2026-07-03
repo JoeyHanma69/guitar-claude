@@ -290,13 +290,47 @@ export function analyzeBuffer(buffer: AudioBuffer, name: string): GeneratedSong 
   };
 }
 
-/** File → decoded buffer → chart. */
-export async function analyzeFile(file: File): Promise<GeneratedSong> {
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        window.clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
+export interface ImportResult {
+  song: GeneratedSong;
+  /** The original encoded file bytes, for saving to the library. */
+  bytes: ArrayBuffer;
+}
+
+/** File → decoded buffer → chart, with guardrails so a bad pick can't crash the app. */
+export async function analyzeFile(file: File): Promise<ImportResult> {
+  if (file.size > 30_000_000) {
+    throw new Error('File too big — keep it under 30 MB (a normal MP3 is 3–10 MB).');
+  }
   const bytes = await file.arrayBuffer();
   const ctx = new AudioContext();
   try {
-    const buffer = await ctx.decodeAudioData(bytes);
-    return analyzeBuffer(buffer, file.name);
+    // decodeAudioData detaches the buffer it is given — decode a copy so the
+    // original bytes survive for the library.
+    const buffer = await withTimeout(
+      ctx.decodeAudioData(bytes.slice(0)),
+      30_000,
+      'Decoding timed out — try a different file.',
+    );
+    if (buffer.duration > 12 * 60) {
+      throw new Error('Song too long — 12 minutes max.');
+    }
+    return { song: analyzeBuffer(buffer, file.name), bytes };
   } catch (err) {
     if (err instanceof Error && err.message.includes('—')) throw err;
     throw new Error('Could not decode that file — try an MP3, WAV, OGG or M4A.');
@@ -305,7 +339,12 @@ export async function analyzeFile(file: File): Promise<GeneratedSong> {
   }
 }
 
-// Dev-only hook so the analyzer can be exercised from the console.
+// Dev-only hooks so the import pipeline can be exercised from the console.
 if (import.meta.env.DEV) {
-  (window as unknown as { __nfAnalyze?: typeof analyzeBuffer }).__nfAnalyze = analyzeBuffer;
+  const w = window as unknown as {
+    __nfAnalyze?: typeof analyzeBuffer;
+    __nfImportFile?: typeof analyzeFile;
+  };
+  w.__nfAnalyze = analyzeBuffer;
+  w.__nfImportFile = analyzeFile;
 }

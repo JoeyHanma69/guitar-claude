@@ -226,6 +226,20 @@ export default function GameCanvas(): JSX.Element {
     return () => observer.disconnect();
   }, []);
 
+  // Auto-pause when the window is hidden: rAF throttles to zero in background
+  // tabs, so the chart would freeze while the audio kept playing.
+  useEffect(() => {
+    const onVisibility = (): void => {
+      if (!document.hidden) return;
+      const store = useGameStore.getState();
+      if (store.phase === 'playing' && !store.paused && !world.current.finished) {
+        store.setPaused(true);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
+
   // --- debug FPS toggle -------------------------------------------------------
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {

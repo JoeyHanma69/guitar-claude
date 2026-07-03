@@ -1,4 +1,4 @@
-import { Component, useEffect, type ErrorInfo, type ReactNode } from 'react';
+import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
 import { useGameStore } from './store/gameStore';
 import StartScreen from './components/StartScreen';
 import GameCanvas from './components/GameCanvas';
@@ -43,11 +43,39 @@ export default function App(): JSX.Element {
   const phase = useGameStore((s) => s.phase);
   const loaded = useGameStore((s) => s.loaded);
   const init = useGameStore((s) => s.init);
+  const [fatal, setFatal] = useState<string | null>(null);
   useAudio();
 
   useEffect(() => {
     void init();
   }, [init]);
+
+  // Errors thrown outside React's render (game loop, async import work)
+  // bypass the error boundary — surface them instead of a dead black screen.
+  useEffect(() => {
+    const onError = (e: ErrorEvent): void => setFatal(e.message || 'Unknown error');
+    const onRejection = (e: PromiseRejectionEvent): void => {
+      setFatal(e.reason instanceof Error ? e.reason.message : String(e.reason));
+    };
+    window.addEventListener('error', onError);
+    window.addEventListener('unhandledrejection', onRejection);
+    return () => {
+      window.removeEventListener('error', onError);
+      window.removeEventListener('unhandledrejection', onRejection);
+    };
+  }, []);
+
+  if (fatal) {
+    return (
+      <div className="screen crash-screen">
+        <h2>Something broke.</h2>
+        <pre>{fatal}</pre>
+        <button type="button" onClick={() => window.location.reload()}>
+          Reload
+        </button>
+      </div>
+    );
+  }
 
   if (!loaded) {
     return <div className="screen boot">LOADING…</div>;

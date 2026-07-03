@@ -79,6 +79,13 @@ function createWindow(): void {
     return { action: 'deny' };
   });
 
+  // If the renderer process dies (e.g. out of memory), reload instead of
+  // leaving a dead black window.
+  win.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[main] renderer gone:', details.reason);
+    if (details.reason !== 'clean-exit') win?.webContents.reload();
+  });
+
   win.on('closed', () => {
     win = null;
   });
