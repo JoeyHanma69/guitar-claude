@@ -180,9 +180,11 @@ export default function GameCanvas(): JSX.Element {
       });
     }
     w.startAt = performance.now();
-    audio.startMusic(song.bpm);
+    if (song.buffer) audio.startTrack(song.buffer, 3000);
+    else audio.startMusic(song.bpm);
     return () => {
       audio.stopMusic();
+      audio.stopTrack();
       audio.resume(); // never leave the context suspended on unmount
     };
   }, [song]);

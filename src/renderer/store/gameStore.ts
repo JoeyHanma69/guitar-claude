@@ -39,7 +39,7 @@ interface GameStore {
 
   init: () => Promise<void>;
   updateSettings: (patch: Partial<Settings>) => void;
-  startGame: (def: SongDef) => void;
+  startGame: (def: SongDef | GeneratedSong) => void;
   restartGame: () => void;
   registerHit: (gems: number) => void;
   registerMiss: (gems: number) => void;
@@ -86,8 +86,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   startGame: (def) => {
+    // Imported songs arrive pre-charted; procedural ones are generated from
+    // their seed. Either way the store gets a fresh object with pristine
+    // notes, so restarts and effect resets always work.
+    const song: GeneratedSong =
+      'notes' in def
+        ? { ...def, notes: def.notes.map((n) => ({ ...n, judged: false, rating: null })) }
+        : generateSong(def);
     set({
-      song: generateSong(def),
+      song,
       phase: 'playing',
       paused: false,
       score: 0,

@@ -54,6 +54,8 @@ export interface SongDef {
 export interface GeneratedSong extends SongDef {
   notes: Note[];
   sections: SongSection[];
+  /** Present on imported songs: the decoded audio to play during gameplay. */
+  buffer?: AudioBuffer;
 }
 
 export interface Settings {

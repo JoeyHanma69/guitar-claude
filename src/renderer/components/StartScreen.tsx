@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { SONGS } from '../engine/NoteGenerator';
+import { analyzeFile } from '../engine/AudioImport';
 import { NOTE_SPEEDS, DEFAULT_SETTINGS, keyLabel } from '../constants';
 import { audio } from '../hooks/useAudio';
 
@@ -19,6 +20,23 @@ export default function StartScreen(): JSX.Element {
   const [panel, setPanel] = useState<'none' | 'settings' | 'help'>('none');
   const [remapLane, setRemapLane] = useState<number | null>(null);
   const [remapNote, setRemapNote] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleImport = async (file: File): Promise<void> => {
+    setImporting(true);
+    setImportError('');
+    try {
+      const song = await analyzeFile(file);
+      startGame(song);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Import failed.');
+    } finally {
+      setImporting(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
 
   // Key-capture mode for rebinding a lane.
   useEffect(() => {
@@ -99,6 +117,17 @@ export default function StartScreen(): JSX.Element {
       </div>
 
       <div className="menu-buttons">
+        <button
+          type="button"
+          className="import-btn"
+          disabled={importing}
+          onClick={() => {
+            audio.uiClick();
+            fileRef.current?.click();
+          }}
+        >
+          {importing ? 'Analyzing…' : 'Import Song'}
+        </button>
         <button type="button" onClick={() => setPanel(panel === 'help' ? 'none' : 'help')}>
           How to Play
         </button>
@@ -109,6 +138,25 @@ export default function StartScreen(): JSX.Element {
           Settings
         </button>
       </div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void handleImport(file);
+        }}
+      />
+      {importError && <p className="hint warn">{importError}</p>}
+      {importing && (
+        <div className="overlay">
+          <div className="panel import-panel">
+            <h2>Analyzing…</h2>
+            <p>Finding the beat, mapping riffs to frets. A few seconds.</p>
+          </div>
+        </div>
+      )}
 
       {panel === 'help' && (
         <div className="overlay" onClick={() => setPanel('none')}>

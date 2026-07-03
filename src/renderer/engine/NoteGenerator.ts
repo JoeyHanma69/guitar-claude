@@ -79,7 +79,7 @@ const SECTION_LAYOUT: Array<{ name: SongSection['name']; frac: number; density: 
   { name: 'outro', frac: 0.22, density: 0.4 },
 ];
 
-function buildSections(duration: number): SongSection[] {
+export function buildSections(duration: number): SongSection[] {
   const sections: SongSection[] = [];
   let t = 0;
   for (const s of SECTION_LAYOUT) {
@@ -162,7 +162,7 @@ function markSustains(rng: () => number, notes: Note[], beat: number, chance: nu
  * Hammer-ons/pull-offs: a fast note on a different lane than its predecessor
  * can be hit by fretting alone, no strum, as long as the streak is alive.
  */
-function markHopos(notes: Note[], beat: number): void {
+export function markHopos(notes: Note[], beat: number): void {
   const threshold = Math.min(beat * 0.55, 185);
   for (let i = 1; i < notes.length; i += 1) {
     const n = notes[i];
@@ -174,7 +174,7 @@ function markHopos(notes: Note[], beat: number): void {
 }
 
 /** Evenly spread runs of notes that charge the star power gauge. */
-function markStarPhrases(rng: () => number, notes: Note[]): void {
+export function markStarPhrases(rng: () => number, notes: Note[]): void {
   if (notes.length < 30) return;
   const phraseCount = Math.max(4, Math.min(8, Math.round(notes.length / 55)));
   const span = notes.length / (phraseCount + 1);

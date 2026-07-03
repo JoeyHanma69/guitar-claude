@@ -61,6 +61,10 @@ Gems scroll down a 3D-perspective fretboard. **Hold the fret key and strum** as 
 | Iron Serpent | Heavy Metal | Medium | 138 | 120 s | ~250, eighth-note riffs, power chords, gallops |
 | Blast Beat Inferno | Thrash Metal | Hard | 166 | 150 s | 400+, gallops, triplet sweeps, double-kick backing |
 
+### Import your own songs
+
+Menu → **Import Song** → pick any MP3/WAV/OGG/M4A. The analyzer finds the beat (onset detection over low/mid/high frequency bands), estimates the tempo, and builds a chart: bass hits land on the left frets, leads and cymbals on the right, the heaviest hits become power chords, ringing notes become sustains, and the HOPO/star-phrase passes run just like on the built-in songs. Your actual audio plays during gameplay. Charts are deterministic per file, so high scores for imported songs persist.
+
 Charts are built the way guitar music works: each intro / verse / chorus / bridge / outro section gets its own **riff** — a short bar-length pattern anchored on a root note — which repeats with small variations, ends in a descending fill run, and rides the difficulty ramp peaking ~60% through the song. Power chords land as root+fifth lane shapes and metal songs add gallop sixteenths. Lanes map onto the E-minor pentatonic scale (lane 0 = low string) — the same scale the audio engine plays, so hitting the chart plays the riff.
 
 ## Settings (persisted)

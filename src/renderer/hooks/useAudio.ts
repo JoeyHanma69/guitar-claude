@@ -40,6 +40,11 @@ class AudioEngine {
 
   private musicBus: GainNode | null = null;
 
+  /** Imported-song playback: full music volume, unlike the quiet synth bed. */
+  private trackBus: GainNode | null = null;
+
+  private trackSource: AudioBufferSourceNode | null = null;
+
   private volumes = { master: 0.8, sfx: 0.9, music: 0.5 };
 
   private muted = false;
@@ -73,6 +78,8 @@ class AudioEngine {
       this.sfxBus.connect(this.masterBus);
       this.musicBus = this.ctx.createGain();
       this.musicBus.connect(this.masterBus);
+      this.trackBus = this.ctx.createGain();
+      this.trackBus.connect(this.masterBus);
       this.applyVolumes();
       return this.ctx;
     } catch (err) {
@@ -88,6 +95,7 @@ class AudioEngine {
     this.sfxBus.gain.value = this.volumes.sfx;
     // Music sits well under the SFX (roughly -20 dB territory).
     this.musicBus.gain.value = this.volumes.music * 0.3;
+    if (this.trackBus) this.trackBus.gain.value = this.volumes.music;
   }
 
   setVolumes(master: number, sfx: number, music: number): void {
@@ -357,6 +365,29 @@ class AudioEngine {
     };
     schedule();
     this.beatTimer = window.setInterval(schedule, 120);
+  }
+
+  /** Play an imported song's audio, delayed to line up with the countdown. */
+  startTrack(buffer: AudioBuffer, delayMs: number): void {
+    const ctx = this.ensure();
+    if (!ctx || !this.trackBus) return;
+    this.stopTrack();
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(this.trackBus);
+    source.start(ctx.currentTime + delayMs / 1000);
+    this.trackSource = source;
+  }
+
+  stopTrack(): void {
+    if (!this.trackSource) return;
+    try {
+      this.trackSource.stop();
+      this.trackSource.disconnect();
+    } catch {
+      /* already stopped */
+    }
+    this.trackSource = null;
   }
 
   stopMusic(): void {
