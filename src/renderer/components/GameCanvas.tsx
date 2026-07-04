@@ -180,6 +180,15 @@ export default function GameCanvas(): JSX.Element {
       });
     }
     w.startAt = performance.now();
+    // Dev/deep-link helper: ?seek=<ms> starts mid-song (earlier notes are
+    // skipped without penalty). Pairs with ?song=<id>.
+    const seek = Number(new URLSearchParams(window.location.search).get('seek') ?? 0);
+    if (Number.isFinite(seek) && seek > 0) {
+      w.startAt -= seek;
+      for (const n of w.notes) {
+        if (n.time < seek + 100) n.judged = true;
+      }
+    }
     if (song.buffer) audio.startTrack(song.buffer, 3000);
     else audio.startMusic(song.bpm);
     return () => {

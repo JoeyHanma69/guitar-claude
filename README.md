@@ -4,6 +4,14 @@ A Guitar Hero 2-style rhythm game built as a desktop app with **Electron + React
 
 Gameplay follows GH2's systems: fret + strum input, overstrums, hammer-ons/pull-offs, sustain notes, star power, and a rock meter that fails the song when the crowd turns. (The actual GH2 — its licensed songs, art and branding — is copyrighted and can't be reproduced; this recreates the mechanics, not the assets.)
 
+**Play it in your browser: https://joeyhanma69.github.io/guitar-claude/**
+
+## Screenshots
+
+![Gameplay — gems flying down the fretboard; white-faced gems are hammer-ons](docs/gameplay.png)
+
+![Main menu — three procedural songs plus your imported library](docs/menu.png)
+
 ## Quick Start
 
 ```bash
@@ -110,6 +118,46 @@ src/
 - Web Audio failure degrades to silent gameplay instead of crashing.
 - A React error boundary catches render crashes and offers a reload.
 - The renderer also runs in a plain browser tab (falls back to `localStorage`), handy for UI work.
+
+## For Developers
+
+### Getting started
+
+Node 18+ required.
+
+```bash
+npm install
+npm run dev                       # Electron app with hot reload
+```
+
+Browser-only dev (no Electron window):
+
+```powershell
+$env:WEB_ONLY = '1'; npx vite     # PowerShell
+WEB_ONLY=1 npx vite               # bash
+```
+
+### Debug tools
+
+- `F3` in game — FPS counter
+- `/?song=<id>` — deep-link straight into a built-in song (`whiskey-highway`, `iron-serpent`, `blast-beat-inferno`)
+- `&seek=<ms>` — start mid-song; earlier notes are skipped without penalty (handy for testing late sections)
+- Dev builds expose console hooks: `window.__nfStore` (the zustand store — read state or drive the game: `__nfStore.getState().startGame(...)`) and `window.__nfAnalyze` / `window.__nfImportFile` (the import pipeline)
+
+### Where to tune things
+
+| What | Where |
+| --- | --- |
+| Hit window, scoring, multipliers, rock meter, star power | [src/renderer/engine/TimingEngine.ts](src/renderer/engine/TimingEngine.ts) |
+| Scroll speed, lane colors, key defaults | [src/renderer/constants.ts](src/renderer/constants.ts) |
+| Add a built-in song | append a `SongDef` to `SONGS` in [src/renderer/engine/NoteGenerator.ts](src/renderer/engine/NoteGenerator.ts) — pick a seed, BPM, duration and density knobs; the chart generates itself |
+| Synth sounds (hits, drums, drone) | [src/renderer/hooks/useAudio.ts](src/renderer/hooks/useAudio.ts) |
+| Import analysis (onsets, tempo, lane mapping) | [src/renderer/engine/AudioImport.ts](src/renderer/engine/AudioImport.ts) |
+| Highway rendering & input | [src/renderer/components/GameCanvas.tsx](src/renderer/components/GameCanvas.tsx) |
+
+### CI/CD
+
+Every push to `main` runs [.github/workflows/deploy.yml](.github/workflows/deploy.yml): web bundle build (`WEB_ONLY=1`) → GitHub Pages deploy. Desktop installers build locally with `npm run dist:win|mac|linux`.
 
 ## Design decisions (deviations from the original spec)
 

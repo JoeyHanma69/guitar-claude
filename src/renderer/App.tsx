@@ -1,5 +1,6 @@
 import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
 import { useGameStore } from './store/gameStore';
+import { SONGS } from './engine/NoteGenerator';
 import StartScreen from './components/StartScreen';
 import GameCanvas from './components/GameCanvas';
 import HUD from './components/HUD';
@@ -49,6 +50,17 @@ export default function App(): JSX.Element {
   useEffect(() => {
     void init();
   }, [init]);
+
+  // Deep link: ?song=<id> jumps straight into a built-in song.
+  useEffect(() => {
+    if (!loaded) return;
+    const id = new URLSearchParams(window.location.search).get('song');
+    if (!id) return;
+    const def = SONGS.find((s) => s.id === id);
+    if (def && useGameStore.getState().phase === 'menu') {
+      useGameStore.getState().startGame(def);
+    }
+  }, [loaded]);
 
   // Errors thrown outside React's render (game loop, async import work)
   // bypass the error boundary — surface them instead of a dead black screen.
